@@ -137,17 +137,26 @@ and restore any of them in one click. Restoring is reversible too.
 
 ## Get PromptVault
 
-There's no prebuilt download yet, so for now you build it from source. You need macOS 14 or later to run it,
-and Xcode 26 or later to build it (details in [Building](#building)).
+**[Download the latest release](https://github.com/rgtstha/PromptVault/releases/latest)**: a universal DMG for
+Apple Silicon and Intel Macs running macOS 14 or later. Open it and drag **PromptVault** into **Applications**.
+
+> [!NOTE]
+> This build isn't notarized by Apple yet, so macOS blocks it the first time you open it. Try opening it once,
+> then go to **System Settings → Privacy & Security** and choose **Open Anyway** for PromptVault.
+> You only need to do this once.
+
+PromptVault lives in the menu bar. A brand-new library comes with a few sample prompts to try, so press
+<kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>P</kbd> and pick one. You can change the shortcut in Settings.
+
+### Build from source
+
+You need macOS 14 or later to run it, and Xcode 26 or later to build it (details in [Building](#building)).
 
 ```sh
 git clone https://github.com/rgtstha/PromptVault.git
 cd PromptVault
 open PromptVault.xcodeproj        # then press ⌘R
 ```
-
-PromptVault lives in the menu bar. A brand-new library comes with a few sample prompts to try, so press
-<kbd>⌃</kbd> <kbd>⌥</kbd> <kbd>P</kbd> and pick one. You can change the shortcut in Settings.
 
 ## Building
 
@@ -202,6 +211,9 @@ TEST_RUNNER_PROMPTVAULT_SNAPSHOT_DIR=/tmp/pv-snaps xcodebuild … test -only-tes
 - Regenerate the app icon: `swift scripts/generate-icon.swift PromptVault/Resources/Assets.xcassets/AppIcon.appiconset`.
 - Regenerate the README images in `docs/images/`: render the snapshots above into `/tmp/pv-snaps`, then run
   `swift scripts/generate-readme-images.swift /tmp/pv-snaps docs/images` from the repository root.
+- Make a release: bump `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION`), then run `scripts/make-dmg.sh`. It builds a
+  universal Release app and writes `build/release/PromptVault-<version>.dmg` with its SHA-256 checksum. Attach the DMG
+  to a GitHub release tagged `v<version>`.
 
 ## Architecture
 
