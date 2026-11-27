@@ -211,9 +211,11 @@ TEST_RUNNER_PROMPTVAULT_SNAPSHOT_DIR=/tmp/pv-snaps xcodebuild … test -only-tes
 - Regenerate the app icon: `swift scripts/generate-icon.swift PromptVault/Resources/Assets.xcassets/AppIcon.appiconset`.
 - Regenerate the README images in `docs/images/`: render the snapshots above into `/tmp/pv-snaps`, then run
   `swift scripts/generate-readme-images.swift /tmp/pv-snaps docs/images` from the repository root.
-- Make a release: bump `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION`), then run `scripts/make-dmg.sh`. It builds a
-  universal Release app and writes `build/release/PromptVault-<version>.dmg` with its SHA-256 checksum. Attach the DMG
-  to a GitHub release tagged `v<version>`.
+- Make a release: bump `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION`), commit, then push a matching tag, for
+  example `git tag v1.1 && git push origin v1.1`. The [Release workflow](.github/workflows/release.yml) builds the DMG and
+  publishes the GitHub release, using [`.github/release-notes-template.md`](.github/release-notes-template.md) for the notes.
+  Run the workflow by hand from the Actions tab to get a test DMG without releasing. To build one locally, run
+  `scripts/make-dmg.sh`, which writes `build/release/PromptVault-<version>.dmg` with its SHA-256 checksum.
 
 ## Architecture
 

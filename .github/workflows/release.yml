@@ -1,0 +1,82 @@
+name: Release
+
+# Builds the universal DMG with scripts/make-dmg.sh.
+# - Push a tag such as v1.1 to build the DMG and publish the GitHub release for that tag.
+#   The tag has to match the app's version (MARKETING_VERSION), e.g. v1.1 for 1.1.
+# - Or run it by hand from the Actions tab ("Run workflow") to build a DMG you can download
+#   from the run's artifacts, without publishing anything.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  dmg:
+    name: Build DMG
+    # The same Xcode as local development (27.2). GitHub offers this image as a public preview.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Show the toolchain
+        run: xcodebuild -version
+
+      - name: Build the DMG
+        run: scripts/make-dmg.sh
+
+      - name: Read the version and checksum
+        id: dmg
+        run: |
+          dmg=$(ls build/release/PromptVault-*.dmg)
+          version=${dmg#build/release/PromptVault-}
+          version=${version%.dmg}
+          echo "path=$dmg" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(cut -d ' ' -f 1 "$dmg.sha256")" >> "$GITHUB_OUTPUT"
+
+      - name: Check that the tag matches the app version
+        if: github.ref_type == 'tag'
+        env:
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.dmg.outputs.version }}
+        run: |
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::Tag $TAG doesn't match the app version $VERSION. Tag v$VERSION, or bump MARKETING_VERSION first."
+            exit 1
+          fi
+
+      - name: Upload the DMG as a run artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: PromptVault-${{ steps.dmg.outputs.version }}
+          path: |
+            build/release/*.dmg
+            build/release/*.dmg.sha256
+          if-no-files-found: error
+
+      - name: Publish the GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.dmg.outputs.version }}
+          SHA256: ${{ steps.dmg.outputs.sha256 }}
+          DMG: ${{ steps.dmg.outputs.path }}
+        run: |
+          sed -e "s/@VERSION@/$VERSION/g" -e "s/@SHA256@/$SHA256/g" .github/release-notes-template.md > "$RUNNER_TEMP/notes.md"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists, so only its DMG is replaced."
+            gh release upload "$TAG" "$DMG" --clobber
+          else
+            gh release create "$TAG" "$DMG" --verify-tag --title "PromptVault $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+          fi
